@@ -3,4 +3,5 @@
     <string name="encender">Encender</string>
     <string name="apagar">Apagar</string>
     <string name="buscar">Buscar Dispositivos</string>
+    <string name="emparejados">Mostrar Emparejados</string>
 </resources>

@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -32,7 +33,9 @@ public class MainActivity extends AppCompatActivity {
     Button mButtonOn;
     Button mButtonOff;
     Button mButtonBuscar;
+    Button mButtonEmparejados;
     ListView mListDispositivosBuscados;
+    ListView mListDispositivosEmparejados;
     ArrayList<String> deviceNameList = new ArrayList<>();
     ArrayAdapter<String> adapter;
 
@@ -42,15 +45,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 
-
-
         // Adaptador y vistas
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mBluetoothOnOff = (ImageView) findViewById(R.id.iv_bluetooth_on_off);
         mButtonOn = (Button) findViewById(R.id.btn_On);
         mButtonOff = (Button) findViewById(R.id.btn_Off);
         mButtonBuscar = (Button) findViewById(R.id.btn_Buscar);
+        mButtonEmparejados = (Button) findViewById(R.id.btn_Emparejados);
         mListDispositivosBuscados = (ListView) findViewById(R.id.lv_Discovered_Devices);
+        mListDispositivosEmparejados = (ListView) findViewById(R.id.lv_Paired_Devices);
 
         if (mBluetoothAdapter == null) {
             // Device doesn't support Bluetooth
@@ -62,6 +65,8 @@ public class MainActivity extends AppCompatActivity {
         }
         else{
             mBluetoothOnOff.setImageResource(R.drawable.bt_off_foreground);
+            disableButton(mButtonBuscar);
+            disableButton(mButtonEmparejados);
         }
 
         mButtonOn.setOnClickListener(new View.OnClickListener() {
@@ -87,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     showToast("Apagando Bluetooth...");
                     mBluetoothAdapter.disable();
+                    disableButton(mButtonBuscar);
+                    disableButton(mButtonEmparejados);
                     mBluetoothOnOff.setImageResource(R.drawable.bt_off_foreground);
                 }
             }
@@ -101,15 +108,23 @@ public class MainActivity extends AppCompatActivity {
         mButtonBuscar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showToast("Buscando dispositivos visibles...");
-                mBluetoothAdapter.startDiscovery();
+                deviceNameList.clear();
+                mListDispositivosBuscados.setAdapter(null);
+                mListDispositivosBuscados.setAdapter(adapter);
+                if(mBluetoothAdapter.isDiscovering()){
+                    mBluetoothAdapter.cancelDiscovery();
+                    mBluetoothAdapter.startDiscovery();
+                    showToast("Buscando dispositivos visibles...");
+                }else {
+                    showToast("Buscando dispositivos visibles...");
+                    mBluetoothAdapter.startDiscovery();
+                }
             }
         });
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
 
         adapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1,deviceNameList);
-        mListDispositivosBuscados.setAdapter(adapter);
     }
     BroadcastReceiver receiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -132,6 +147,8 @@ public class MainActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
                     //bluetooth is on
                     mBluetoothOnOff.setImageResource(R.drawable.bt_on_foreground);
+                    enableButton(mButtonBuscar);
+                    enableButton(mButtonEmparejados);
                     showToast("Bluetooth encendido");
                 } else {
                     //user denied to turn bluetooth on
@@ -152,6 +169,14 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
 
+    private void disableButton(Button button){
+        button.setEnabled(false);
+        button.setTextColor(Color.parseColor("#BDBDBD"));
+    }
+    private void enableButton(Button button){
+        button.setEnabled(true);
+        button.setTextColor(Color.parseColor("#000000"));
+    }
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -159,4 +184,5 @@ public class MainActivity extends AppCompatActivity {
         // Don't forget to unregister the ACTION_FOUND receiver.
         unregisterReceiver(receiver);
     }
+
 }
