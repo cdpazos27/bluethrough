@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    android:orientation="vertical"
+    android:gravity="center">
+
+    <ImageView
+        android:id="@+id/iv_bluetooth_on_off"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scaleType="center"
+        android:layout_marginTop="10dp"
+        android:src="@drawable/bt_on_foreground"></ImageView>
+
+    <Button
+        android:id="@+id/btn_On"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/encender"
+        android:textSize="22sp"
+        android:textColor="@android:color/black"
+        android:background="@android:color/transparent"></Button>
+
+    <Button
+        android:id="@+id/btn_Off"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/apagar"
+        android:textSize="22sp"
+        android:textColor="@android:color/black"
+        android:background="@android:color/transparent">
+    </Button>
+
+    <Button
+        android:id="@+id/btn_Buscar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/buscar"
+        android:textSize="22sp"
+        android:textColor="@android:color/black"
+        android:background="@android:color/transparent">
+    </Button>
+
+</LinearLayout>
