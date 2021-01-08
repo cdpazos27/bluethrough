@@ -22,6 +22,7 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,8 +37,11 @@ public class MainActivity extends AppCompatActivity {
     Button mButtonEmparejados;
     ListView mListDispositivosBuscados;
     ListView mListDispositivosEmparejados;
+    Set<BluetoothDevice> pairedDevices;
     ArrayList<String> deviceNameList = new ArrayList<>();
-    ArrayAdapter<String> adapter;
+    ArrayList<String> pairedDeviceList = new ArrayList<>();
+    ArrayAdapter<String> adapterBuscar;
+    ArrayAdapter<String> adapterEmparejados;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,12 +109,13 @@ public class MainActivity extends AppCompatActivity {
 
             this.requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 1001); //Any number
         }
+
         mButtonBuscar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 deviceNameList.clear();
                 mListDispositivosBuscados.setAdapter(null);
-                mListDispositivosBuscados.setAdapter(adapter);
+                mListDispositivosBuscados.setAdapter(adapterBuscar);
                 if(mBluetoothAdapter.isDiscovering()){
                     mBluetoothAdapter.cancelDiscovery();
                     mBluetoothAdapter.startDiscovery();
@@ -124,7 +129,20 @@ public class MainActivity extends AppCompatActivity {
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
 
-        adapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1,deviceNameList);
+        adapterBuscar = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, deviceNameList);
+        adapterEmparejados = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, pairedDeviceList);
+        mButtonEmparejados.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pairedDeviceList.clear();
+                for (BluetoothDevice device:mBluetoothAdapter.getBondedDevices()
+                     ) {
+                    pairedDeviceList.add(device.getName());
+                }
+                mListDispositivosEmparejados.setAdapter(null);
+                mListDispositivosEmparejados.setAdapter(adapterEmparejados);
+            }
+        });
     }
     BroadcastReceiver receiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -136,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
                 String deviceName = device.getName();
                 String deviceHardwareAddress = device.getAddress(); // MAC address
                 deviceNameList.add(deviceName);
-                adapter.notifyDataSetChanged();
+                adapterBuscar.notifyDataSetChanged();
             }
         }
     };
