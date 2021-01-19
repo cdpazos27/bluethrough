@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">BluethroughV2</string>
+    <string name="error_missing_permissions">No es posible iniciar sin los permisos requeridos</string>
+</resources>

@@ -18,11 +18,17 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.nearby.messages.Strategy;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import no.nordicsemi.android.mesh.MeshManagerApi;
+import no.nordicsemi.android.mesh.MeshNetwork;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -37,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     Button mButtonEmparejados;
     ListView mListDispositivosBuscados;
     ListView mListDispositivosEmparejados;
+    TextView mDebug;
     Set<BluetoothDevice> pairedDevices;
     ArrayList<String> deviceNameList = new ArrayList<>();
     ArrayList<String> pairedDeviceList = new ArrayList<>();
@@ -48,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
         // Adaptador y vistas
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         mBluetoothOnOff = (ImageView) findViewById(R.id.iv_bluetooth_on_off);
@@ -58,6 +64,8 @@ public class MainActivity extends AppCompatActivity {
         mButtonEmparejados = (Button) findViewById(R.id.btn_Emparejados);
         mListDispositivosBuscados = (ListView) findViewById(R.id.lv_Discovered_Devices);
         mListDispositivosEmparejados = (ListView) findViewById(R.id.lv_Paired_Devices);
+        mDebug = (TextView) findViewById(R.id.tv_debug);
+
 
         if (mBluetoothAdapter == null) {
             // Device doesn't support Bluetooth
