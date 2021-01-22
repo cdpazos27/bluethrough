@@ -6,11 +6,14 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -69,7 +72,11 @@ public class MainActivity extends AppCompatActivity {
     /**Dispositivos conectados y su adapter para actualizar el listado de dispositivos*/
     private ArrayList<String> dispositivosConectados = new ArrayList<>();
     private ArrayAdapter<String> adapterConectados;
-
+    private ArrayList<String> noDevices = new ArrayList<>();
+    private ArrayAdapter<String> adapterNoDevices;
+    /**Destinatarios posibles y su adapter*/
+    private ArrayList<String> destinatarios = new ArrayList<>();
+    private ArrayAdapter<String> adapterDestinatarios;
     /**Mensajes y su adapter para actualizar el chat*/
     private ArrayList<String> mensajes = new ArrayList<>();
     private ArrayAdapter<String> adapterMensajes;
@@ -80,13 +87,15 @@ public class MainActivity extends AppCompatActivity {
     Button mDescubrir;
     Button mConectados;
     Button mEnviar;
+    Button mDestinatarios;
     ListView mChat;
     ListView mListadoConectados;
+    ListView mListadoDestinatarios;
     TextView mEndpointId;
     EditText mChatInput;
     String mensaje;
+    String destinatarioFinal;
     Payload payload;
-
 
     private void startDiscovery() {
         connectionsClient.startDiscovery(getPackageName(), mEndPointDiscoveryCallback,
@@ -104,17 +113,21 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
         mPublicar = findViewById(R.id.bt_Publicar);
         mDescubrir = findViewById(R.id.bt_Descubrir);
         mEnviar = findViewById(R.id.bt_Enviar);
         mEndpointId = findViewById(R.id.tv_EndpointId);
         mConectados = findViewById(R.id.bt_Conectados);
         mListadoConectados = findViewById(R.id.lv_Conectados);
+        mListadoDestinatarios = findViewById(R.id.lv_Destinatarios);
+        mDestinatarios = findViewById(R.id.bt_Destinatarios);
         mChat = findViewById(R.id.lv_Chat);
         mChatInput = findViewById(R.id.et_Chat);
         adapterMensajes = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, mensajes);
         adapterConectados = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, dispositivosConectados);
+        adapterDestinatarios = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, destinatarios);
+        noDevices.add("No hay dispositivos conectados");
+        adapterNoDevices = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, noDevices);
         connectionsClient = Nearby.getConnectionsClient(this);
 
         mDescubrir.setOnClickListener(new View.OnClickListener() {
@@ -137,20 +150,95 @@ public class MainActivity extends AppCompatActivity {
         mEnviar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mensaje = mChatInput.getText().toString();
-            mensajes.add(mensaje);
-            payload = Payload.fromBytes(mensaje.getBytes());
-            connectionsClient.sendPayload(dispositivosConectados.get(0), payload);
+                if(dispositivosConectados.isEmpty()){
+                    showToast("No hay dispositivos conectados");
+                } else{
+                    mensaje = mChatInput.getText().toString();
+                    mensajes.add(mensaje);
+                    adapterMensajes.notifyDataSetChanged();
+                    payload = Payload.fromBytes(mensaje.getBytes());
+                    connectionsClient.sendPayload(dispositivosConectados.get(0), payload);
+                }
+                mChatInput.setText("");
             }
         });
         mConectados.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mListadoConectados.setAdapter(null);
-                mListadoConectados.setAdapter(adapterConectados);
+                if(!dispositivosConectados.isEmpty()) {
+                    mListadoConectados.setAdapter(adapterConectados);
+                } else {
+                    mListadoConectados.setAdapter(adapterNoDevices);
+                }
+            }
+        });
+        mListadoConectados.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if(parent.getAdapter() != adapterNoDevices) {
+                    PopupMenu popup = new PopupMenu(getApplicationContext(), view);
+                    popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                        @Override
+                        public boolean onMenuItemClick(MenuItem item) {
+                            switch (item.getItemId()){
+                                case R.id.desconectarPopupId:
+//                                    Desconectar el dispositivo
+                                    String dispositivo = dispositivosConectados.get(position);
+                                    showToast("Se ha desconectado de: "+dispositivo);
+                                    connectionsClient.disconnectFromEndpoint(dispositivo);
+                                    dispositivosConectados.remove(dispositivo);
+                                    adapterConectados.notifyDataSetChanged();
+                                    return true;
+                                default:
+                                    return false;
+                            }
+                        }
+                    });
+                    popup.inflate(R.menu.popup_menu);
+                    popup.show();
+                }
+            }
+        });
+        mDestinatarios.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mListadoDestinatarios.setAdapter(null);
+                mListadoDestinatarios.setAdapter(adapterDestinatarios);
+            }
+        });
+        mListadoDestinatarios.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                PopupMenu popup = new PopupMenu(getApplicationContext(), view);
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        switch (item.getItemId()){
+                            case R.id.destinatarioPopupId:
+//                                Establecer dispositivo como destinatario
+                                String dispositivo = destinatarios.get(position);
+                                showToast("El destinatario es: "+dispositivo);
+                                destinatarioFinal = dispositivo;
+                                mostrarDestinatario();
+                                return true;
+                            default:
+                                return false;
+
+
+                        }
+                    }
+                });
+                popup.inflate(R.menu.popup_menu_2);
+                popup.show();
             }
         });
     }
+
+    private void mostrarDestinatario() {
+        mEndpointId.setText(destinatarioFinal);
+    }
+
     /**Al iniciar la app*/
     @Override
     protected void onStart() {
@@ -158,7 +246,6 @@ public class MainActivity extends AppCompatActivity {
         if (!hasPermissions(this, REQUIRED_PERMISSIONS)) {
             requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_REQUIRED_PERMISSIONS);
         }
-        mEndpointId.setText("Este dispositivo: "+connectionsClient.toString());
 
     }
     /**Al cerrar la app*/
@@ -185,6 +272,7 @@ public class MainActivity extends AppCompatActivity {
                 connectionsClient.stopAdvertising();
                 if(!dispositivosConectados.contains(endpointId)) {
                     dispositivosConectados.add(endpointId);
+                    destinatarios.add(endpointId);
                 }
                 showToast("Conectado a: "+endpointId);
             }

@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">BluethroughV2</string>
     <string name="error_missing_permissions">No es posible iniciar sin los permisos requeridos</string>
+    <string name="no_devices">No hay dispositivos conectados</string>
+    <string name="desconectar">Desconectar</string>
+    <string name="destinatario">Destinatario</string>
+    <string name="establecer_destinatario">Establecer destinatario</string>
 </resources>
