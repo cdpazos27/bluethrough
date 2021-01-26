@@ -153,11 +153,23 @@ public class MainActivity extends AppCompatActivity {
                 if(dispositivosConectados.isEmpty()){
                     showToast("No hay dispositivos conectados");
                 } else{
-                    mensaje = mChatInput.getText().toString();
-                    mensajes.add(mensaje);
-                    adapterMensajes.notifyDataSetChanged();
-                    payload = Payload.fromBytes(mensaje.getBytes());
-                    connectionsClient.sendPayload(dispositivosConectados.get(0), payload);
+                    if(destinatarioFinal == null || destinatarioFinal ==""){
+                        showToast("Seleccione un destinatario");
+                    }else {
+                        mensaje = destinatarioFinal+mChatInput.getText().toString();
+                        if(dispositivosConectados.contains(destinatarioFinal)){
+                            mensaje = mensaje+"1";
+
+                            payload = Payload.fromBytes(mensaje.getBytes());
+                            connectionsClient.sendPayload(destinatarioFinal,payload);
+                        } else {
+                            mensaje = mensaje + "0";
+                            payload = Payload.fromBytes(mensaje.getBytes());
+                            connectionsClient.sendPayload(dispositivosConectados, payload);
+                        }
+                            mensajes.add(mensaje.substring(4,mensaje.length()-1));
+                            adapterMensajes.notifyDataSetChanged();
+                    }
                 }
                 mChatInput.setText("");
             }
@@ -219,7 +231,7 @@ public class MainActivity extends AppCompatActivity {
 //                                Establecer dispositivo como destinatario
                                 String dispositivo = destinatarios.get(position);
                                 showToast("El destinatario es: "+dispositivo);
-                                destinatarioFinal = dispositivo;
+                                destinatarioFinal = normalizarDispositivo(dispositivo);
                                 mostrarDestinatario();
                                 return true;
                             default:
@@ -233,6 +245,10 @@ public class MainActivity extends AppCompatActivity {
                 popup.show();
             }
         });
+    }
+
+    private String normalizarDispositivo(String dispositivo) {
+        return dispositivo.substring(0,4);
     }
 
     private void mostrarDestinatario() {
@@ -289,16 +305,29 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPayloadReceived(@NonNull String endpointId, @NonNull Payload payload) {
             mensaje = new String(payload.asBytes());
+            if(mensaje.endsWith("1")){
+                mensajes.add(endpointId+": "+mensaje.substring(4,mensaje.length()-1));
+                adapterMensajes.notifyDataSetChanged();
+            } else {
+                if(dispositivosConectados.contains(mensaje.substring(0,4))){
+                    mensaje = mensaje.substring(0,mensaje.length()-1)+"1";
+                    payload = Payload.fromBytes(mensaje.getBytes());
+                    connectionsClient.sendPayload(mensaje.substring(0,4),payload);
+                } else{
+                    connectionsClient.sendPayload(dispositivosConectados, payload);
+                }
+            }
+
         }
 
         @Override
         public void onPayloadTransferUpdate(@NonNull String endpointId, @NonNull PayloadTransferUpdate payloadTransferUpdate) {
-            if (payloadTransferUpdate.getStatus() == PayloadTransferUpdate.Status.SUCCESS){
-                if(!mensajes.contains(mensaje)) {
-                    mensajes.add(mensaje);
-                    adapterMensajes.notifyDataSetChanged();
-                }
-            }
+//            if (payloadTransferUpdate.getStatus() == PayloadTransferUpdate.Status.SUCCESS){
+//                if(!mensajes.contains(mensaje)) {
+//                    mensajes.add(mensaje);
+//                    adapterMensajes.notifyDataSetChanged();
+//                }
+//            }
         }
     };
 
@@ -309,10 +338,11 @@ public class MainActivity extends AppCompatActivity {
             connectionsClient.requestConnection(bluetoothAdapter.getName(), endpointId ,mConnectionLifecycleCallback);
         }
 
-        /**De momento no hace falta implementar*/
+        /**Cuando perdemos un dispositivo, mismo procedimiento que si se hubiese desconectado*/
         @Override
         public void onEndpointLost(@NonNull String endpointId) {
-
+            showToast("Se perdió la conexión a: "+endpointId);
+            dispositivosConectados.remove(endpointId);
         }
     };
 
