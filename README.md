@@ -1,5 +1,5 @@
 # bluethrough
-An android applicattion designed to extend the range of bluetooth device by using a switched network of smartphones.
+An android applicattion designed to extend the range of bluetooth device by using message relay between multiple bluetooth devices.
 
 				                            WIP
 This repository contains two projects: Bluethrough and BluethroughV2. Bluethrough was our first attempt to make a switched network for message
