@@ -327,6 +327,7 @@ public class MainActivity extends AppCompatActivity {
                 /**Si el TTV es mayor a 0, sigue curso. Si no, el mensaje muere.*/
                 if(hop>0) {
                     hop -=1;
+                    cuerpo = cuerpo.substring(0,cuerpo.length()-1);
                     mensaje = destino+hop.toString()+cuerpo;
                     if (dispositivosConectados.contains(destino)) {
                         mensaje = mensaje+"1";
