@@ -3,6 +3,7 @@ package android.example.bluethroughv2;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
@@ -53,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.ACCESS_COARSE_LOCATION,
             };
     private static final int REQUEST_CODE_REQUIRED_PERMISSIONS = 1;
+    /**Tiempo de vida de un mensaje*/
+    private static final String TTL = "5";
     /**
      * Estrategia de conexión que vamos a usar
      */
@@ -92,9 +96,11 @@ public class MainActivity extends AppCompatActivity {
     ListView mListadoConectados;
     ListView mListadoDestinatarios;
     TextView mEndpointId;
+    TextView mAlias;
     EditText mChatInput;
     String mensaje;
     String destinatarioFinal;
+    String alias;
     Payload payload;
 
     private void startDiscovery() {
@@ -123,12 +129,16 @@ public class MainActivity extends AppCompatActivity {
         mDestinatarios = findViewById(R.id.bt_Destinatarios);
         mChat = findViewById(R.id.lv_Chat);
         mChatInput = findViewById(R.id.et_Chat);
+        mAlias = findViewById(R.id.tv_Alias);
         adapterMensajes = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, mensajes);
         adapterConectados = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, dispositivosConectados);
         adapterDestinatarios = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, destinatarios);
         noDevices.add("No hay dispositivos conectados");
         adapterNoDevices = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, noDevices);
         connectionsClient = Nearby.getConnectionsClient(this);
+
+        Intent intent = new Intent(getApplicationContext(), Alias.class);
+        startActivityForResult(intent,2);
 
         mDescubrir.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -156,10 +166,12 @@ public class MainActivity extends AppCompatActivity {
                     if(destinatarioFinal == null || destinatarioFinal ==""){
                         showToast("Seleccione un destinatario");
                     }else {
-                        mensaje = destinatarioFinal+mChatInput.getText().toString();
+                        mensaje = mChatInput.getText().toString();
+                        mensajes.add(mensaje);
+                        adapterMensajes.notifyDataSetChanged();
+                        mensaje = destinatarioFinal+TTL+alias+"): "+mensaje;
                         if(dispositivosConectados.contains(destinatarioFinal)){
                             mensaje = mensaje+"1";
-
                             payload = Payload.fromBytes(mensaje.getBytes());
                             connectionsClient.sendPayload(destinatarioFinal,payload);
                         } else {
@@ -167,8 +179,6 @@ public class MainActivity extends AppCompatActivity {
                             payload = Payload.fromBytes(mensaje.getBytes());
                             connectionsClient.sendPayload(dispositivosConectados, payload);
                         }
-                            mensajes.add(mensaje.substring(4,mensaje.length()-1));
-                            adapterMensajes.notifyDataSetChanged();
                     }
                 }
                 mChatInput.setText("");
@@ -262,7 +272,6 @@ public class MainActivity extends AppCompatActivity {
         if (!hasPermissions(this, REQUIRED_PERMISSIONS)) {
             requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_REQUIRED_PERMISSIONS);
         }
-
     }
     /**Al cerrar la app*/
     @Override
@@ -284,8 +293,6 @@ public class MainActivity extends AppCompatActivity {
         public void onConnectionResult(@NonNull String endpointId, @NonNull ConnectionResolution connectionResolution) {
             if (connectionResolution.getStatus().isSuccess()) {
                 Log.i(TAG, "onConnectionResult: connection successful");
-                connectionsClient.stopDiscovery();
-                connectionsClient.stopAdvertising();
                 if(!dispositivosConectados.contains(endpointId)) {
                     dispositivosConectados.add(endpointId);
                     destinatarios.add(endpointId);
@@ -305,18 +312,34 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPayloadReceived(@NonNull String endpointId, @NonNull Payload payload) {
             mensaje = new String(payload.asBytes());
+            Integer hop = Integer.parseInt(mensaje.substring(4,5));
+            String destino = mensaje.substring(0,4);
+            String cuerpo = mensaje.substring(5);
+            if(hop == 5){
+                cuerpo = "De "+endpointId+" ("+cuerpo;
+            }
+            mensaje = destino+hop.toString()+cuerpo;
             if(mensaje.endsWith("1")){
-                mensajes.add(endpointId+": "+mensaje.substring(4,mensaje.length()-1));
+                mensajes.add(endpointId+": "+mensaje.substring(5,mensaje.length()-1));
                 adapterMensajes.notifyDataSetChanged();
             } else {
-                if(dispositivosConectados.contains(mensaje.substring(0,4))){
-                    mensaje = mensaje.substring(0,mensaje.length()-1)+"1";
-                    payload = Payload.fromBytes(mensaje.getBytes());
-                    connectionsClient.sendPayload(mensaje.substring(0,4),payload);
-                } else{
-                    connectionsClient.sendPayload(dispositivosConectados, payload);
+                /**Si el TTV es mayor a 0, sigue curso. Si no, el mensaje muere.*/
+                if(hop>0) {
+                    hop -=1;
+                    cuerpo = cuerpo.substring(0,cuerpo.length()-1);
+                    mensaje = destino+hop.toString()+cuerpo;
+                    if (dispositivosConectados.contains(destino)) {
+                        mensaje = mensaje+"1";
+                        payload = Payload.fromBytes(mensaje.getBytes());
+                        connectionsClient.sendPayload(destino, payload);
+                    } else {
+                        mensaje = mensaje+"0";
+                        payload = Payload.fromBytes(mensaje.getBytes());
+                        connectionsClient.sendPayload(dispositivosConectados, payload);
+                    }
                 }
             }
+            Log.i(TAG, "onPayloadReceived: Message Received");
 
         }
 
@@ -359,5 +382,15 @@ public class MainActivity extends AppCompatActivity {
     /**Tostadora express*/
     private void showToast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode ==2){
+            String aliasRecibido = data.getStringExtra("ALIAS");
+            mAlias.setText(aliasRecibido);
+            alias = aliasRecibido;
+        }
     }
 }
