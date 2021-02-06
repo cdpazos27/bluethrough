@@ -322,7 +322,6 @@ public class MainActivity extends AppCompatActivity {
             if(mensaje.endsWith("1")){
                 mensajes.add(endpointId+": "+mensaje.substring(5,mensaje.length()-1));
                 adapterMensajes.notifyDataSetChanged();
-                showToast(mensaje);
             } else {
                 /**Si el TTV es mayor a 0, sigue curso. Si no, el mensaje muere.*/
                 if(hop>0) {
